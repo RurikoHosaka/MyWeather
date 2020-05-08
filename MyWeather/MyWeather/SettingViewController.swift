@@ -80,7 +80,7 @@ class SettingViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
         let settings = UserDefaults.standard
         settings.setValue(regionList.list[row].code,forKey: settingKey)
         settings.synchronize()
-        regionData = [regionList.list[row].code,regionList.list[row].name]
+        regionData = [regionList.list[row].code,regionList.list[row].name,regionList.list[row].lat,regionList.list[row].lon]
     }
     
 }
