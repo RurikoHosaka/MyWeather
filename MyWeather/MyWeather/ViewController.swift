@@ -34,7 +34,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     var tomorrowHigh:String = ""
     var tomorrowLow:String = ""
     var data:Data?
-    
+    var getCoordeFlag = 0
     
     //地域を扱うキーを設定
     let settingKey = "region_value"
@@ -42,25 +42,33 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     let regionList = RegionList()
     
     //APIキー
-    let apiKey = "e846088f82debcd7f279c5792dceb51b"
-    // 緯度
-    //var latLocation
-    // 経度
-    //var lonLocation
+    let apiKey = "29251e2deca8f2cad28bc2757ba76f78"
+    //緯度経度
+    var latLocation = 0.0
+    var lonLocation = 0.0
     //位置情報を管理するクラスのインスタンスを生成
     // user location
     let locationManager = CLLocationManager()
-    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
+        //現在日付を取得
+        getTodayDate()
+        
         //UserDefaultsのインスタンスを生成
         let settings = UserDefaults.standard
         //UserDefaultsに初期値を登録
         settings.register(defaults: [settingKey:"13"])
-        //setupLocationManager()
+        // use popup to check and get location
+        locationManager.requestWhenInUseAuthorization()
+        if (CLLocationManager.locationServicesEnabled()) {
+            locationManager.delegate = self
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest
+            locationManager.startUpdatingLocation()
+        }
+        setupLocationManager()
         getWeatherData(row: 0)
         getWeatherData(row: 1)
         
@@ -84,17 +92,42 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         performSegue(withIdentifier:"goSetting", sender: nil)
     }
     
+    @IBAction func getCoordButtonAction(_ sender: Any) {
+        //現在地の緯度経度を取得する
+        getCoordeFlag = 1
+        setupLocationManager()
+        getWeatherData(row: 0)
+        getWeatherData(row: 1)
+        getCoordeFlag = 0
+    }
+    //現在日付を取得する処理
+    private func getTodayDate() {
+        let dt = Date()
+        let dateFormatter = DateFormatter()
+        // DateFormatter を使用して書式とロケールを指定する
+        dateFormatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "M/d", options: 0, locale: Locale(identifier: "ja_JP"))
+        self.dateString = dateFormatter.string(from: dt)
+    }
+    
     //APIから天気情報を取得する処理
     private func getWeatherData(row: Int){
         //UserDefaultsの取得
         let settings = UserDefaults.standard
-        //let regionValue = settings.string(forKey: settingKey)
-        let regionValue = "13"
+        var regionValue = ""
+        if getCoordeFlag == 0 {
+            regionValue = settings.string(forKey: settingKey)!
+        } else {
+            regionValue = "0"
+        }
         //RegionListからcodeに対応するnameを取得する
-        for listRow in 0..<47 {
+        for listRow in 0..<48 {
             if regionList.list[listRow].code == regionValue {
                 regionData = [regionList.list[listRow].code, regionList.list[listRow].name, regionList.list[listRow].lat, regionList.list[listRow].lon]
             }
+        }
+        if regionValue == "0" {
+            regionData[2] = String(latLocation)
+            regionData[3] = String(lonLocation)
         }
         
         let url = "http://api.openweathermap.org/data/2.5/weather?lat=\(regionData[2])&lon=\(regionData[3])&appid=\(apiKey)&units=metric"
@@ -110,11 +143,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 //取得したjsonから、必要なデータを取り出す
                 //let details = json["description"]["text"].string
-                //let dateString = json["forecasts"][row]["date"].string
-                //let weatherURL = json["forecasts"][row]["image"]["url"].string
-                let weather = json["weather"].array![0]["main"].stringValue
-                let high = json["main"]["temp"].doubleValue
-                //let low = json["forecasts"][row]["temperature"]["min"]["celsius"].string
+                let weather = json[["weather"]].array![0]["main"].stringValue
+                let iconName = json["weather"].array![0]["icon"].stringValue
+                let high = Int(round(json["main"]["temp_max"].doubleValue))
+                let low = Int(round(json["main"]["temp_min"].doubleValue))
                 
                 //取り出したデータを、それぞれの変数に入れる
                 //データがない場合もあるので、その時は"No Data"と入れておく
@@ -124,38 +156,15 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 //    self.details = ["No Details"]
                 //}
                 
-                //                if dateString != nil {
-                //                    // DateFormatter のインスタンスを作成
-                //                    let formatter: DateFormatter = DateFormatter()
-                //                    // 日付の書式を文字列に合わせて設定
-                //                    formatter.dateFormat = "yyyy-MM-dd"
-                //                    // 日時文字列からDate型の日付を生成する
-                //                    let dt : Date  = formatter.date(from: dateString!)!
-                //                    // 変換後の日付書式
-                //                    formatter.dateFormat = "M/d"
-                //                    self.dateString = formatter.string(from: dt)
-                //                } else {
-                //                    self.dateString = "No Data"
-                //                }
-                //
-                //                if  weatherURL != nil {
-                //                    do {
-                //                        print(weatherURL!)
-                //                        let url = URL(string: weatherURL!)
-                //                        self.data = try Data(contentsOf: url!)
-                //                    }catch let err {
-                //                        print("Error : \(err.localizedDescription)")
-                //                    }
-                //                }
-                
-                    self.weather = weather
-                    self.high = "\(high)°"
-                
-//                if low != nil {
-//                    self.low = "\(low!)°"
-//                } else {
-//                    self.low = "No Data"
-//                }
+                do {
+                    let url = URL(string: "http://openweathermap.org/img/wn/\(iconName)@2x.png")
+                    self.data = try Data(contentsOf: url!)
+                }catch let err {
+                    print("Error : \(err.localizedDescription)")
+                }
+                self.weather = weather
+                self.high = "\(high)°"
+                self.low = "\(low)°"
                 
                 //ラベルに反映させる
                 self.setWeatherData(row: row)
@@ -174,7 +183,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             //分割時に配列になっているので、1つ目の要素だけ表示します。
             //detailsTextView.text = details[0]
             dateLabel.text = "今日 " + dateString
-            //weatherImage.image = UIImage(data: data!)
+            weatherImage.image = UIImage(data: data!)
             weatherLabel.text = weather
             highLabel.text = high
             lowLabel.text = low
@@ -182,7 +191,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         } else if row == 1 {
             
             tomorrowDateLabel.text = "明日 " + dateString
-            //tomorrowWeatherImage.image = UIImage(data: data!)
+            tomorrowWeatherImage.image = UIImage(data: data!)
             tomorrowWeatherLabel.text = weather
             tomorrowHighLabel.text = high
             tomorrowLowLabel.text = low
@@ -205,12 +214,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             locationManager.startUpdatingLocation()
         }
     }
-//    //位置情報を取得・更新するたびに呼ばれるデリゲートメソッド
-//    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-//        let location = locations[0]
-//        print(location)
-//        latLocation = location.coordinate.latitude
-//        lonLocation = location.coordinate.longitude
-//    }
+    //位置情報を取得・更新するたびに呼ばれるデリゲートメソッド
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let location = locations[0]
+        print(location)
+        latLocation = location.coordinate.latitude
+        lonLocation = location.coordinate.longitude
+    }
 }
 

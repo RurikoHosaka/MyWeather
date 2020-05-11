@@ -99,6 +99,14 @@
                                 <color key="textColor" red="0.20784313725490194" green="0.20784313725490194" blue="0.49019607843137253" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="KVc-bh-FNQ">
+                                <rect key="frame" x="165" y="157" width="184" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="現在地から天気を取得する"/>
+                                <connections>
+                                    <action selector="getCoordButtonAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="B5B-ST-qmN"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
                         <constraints>
